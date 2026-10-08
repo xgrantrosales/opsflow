@@ -46,3 +46,19 @@ def insert_customer(customer: CustomerCreate) -> int:
     connection.commit()
     connection.close()
     return new_customer_id
+
+def find_existing_customer(
+        email: str,
+        phone_number: str
+):
+    connection = connect_database()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        "SELECT * FROM customers WHERE email = ? OR phone_number = ?",
+        (email, phone_number)
+    )
+    existing_customers = cursor.fetchall()
+    connection.close()
+    return existing_customers
+
