@@ -62,3 +62,15 @@ def find_existing_customer(
     connection.close()
     return existing_customers
 
+def fetch_customer_by_id(customer_id: int):
+    connection = connect_database()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        "SELECT * FROM customers WHERE id = ?",
+        (customer_id,)
+    )
+    customer_record = cursor.fetchone()
+    connection.close()
+    return customer_record
+

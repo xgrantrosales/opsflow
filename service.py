@@ -1,6 +1,6 @@
 from models import CustomerCreate, CustomerResponse
-from database import insert_customer , find_existing_customer
-from exceptions import DuplicateConfirmationRequired
+from database import insert_customer , find_existing_customer, fetch_customer_by_id
+from exceptions import DuplicateConfirmationRequired, CustomerNotFoundError
 
 def create_customer(
         customer: CustomerCreate,
@@ -22,6 +22,22 @@ def create_customer(
         full_name = customer.full_name,
         email = customer.email,
         phone_number = customer.phone_number
+    )
+
+    return customer_response
+
+def get_customer_by_id(customer_id: int) -> CustomerResponse:
+
+    customer_record = fetch_customer_by_id(customer_id)
+
+    if customer_record is None:
+        raise CustomerNotFoundError("Customer not found.")
+
+    customer_response = CustomerResponse(
+        id = customer_record["id"],
+        full_name = customer_record["full_name"],
+        email = customer_record["email"],
+        phone_number = customer_record["phone_number"]
     )
 
     return customer_response

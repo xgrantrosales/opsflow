@@ -21,7 +21,12 @@ def home():
 @app.post(
      "/customers",
      response_model=CustomerResponse,
-     status_code=status.HTTP_201_CREATED
+     status_code=status.HTTP_201_CREATED,
+     responses={
+           status.HTTP_409_CONFLICT:{
+                 "description": "Possible duplicate customer found. Confirmation required."
+           }
+     }
 )
 
 def create_customer_endpoint(
