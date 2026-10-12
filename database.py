@@ -86,3 +86,27 @@ def fetch_all_customers():
     connection.close()
     return customer_records
 
+def update_customer(customer_id: int, updates: dict):
+    connection = connect_database()
+    cursor = connection.cursor()
+
+    cursor.execute("""
+        UPDATE customers
+        SET
+           full_name = COALESCE(?, full_name),
+           email = COALESCE(?, email),
+           phone_number = COALESCE(?, phone_number)
+        WHERE id = ?
+        """, (
+            updates.get("full_name"),
+            updates.get("email"),
+            updates.get("phone_number"),
+            customer_id
+        )   
+    )
+    connection.commit()
+    connection.close()
+
+    
+
+
