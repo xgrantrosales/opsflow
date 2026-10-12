@@ -74,3 +74,15 @@ def fetch_customer_by_id(customer_id: int):
     connection.close()
     return customer_record
 
+def fetch_all_customers():
+    connection = connect_database()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        "SELECT * FROM customers"
+    )
+
+    customer_records = cursor.fetchall()
+    connection.close()
+    return customer_records
+

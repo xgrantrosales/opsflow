@@ -1,5 +1,5 @@
 from models import CustomerCreate, CustomerResponse
-from database import insert_customer , find_existing_customer, fetch_customer_by_id
+from database import insert_customer , find_existing_customer, fetch_customer_by_id, fetch_all_customers
 from exceptions import DuplicateConfirmationRequired, CustomerNotFoundError
 
 def create_customer(
@@ -41,6 +41,24 @@ def get_customer_by_id(customer_id: int) -> CustomerResponse:
     )
 
     return customer_response
+
+def get_all_customers() -> list[CustomerResponse]:
+
+    customer_records = fetch_all_customers()
+
+    customer_responses = []
+
+    for record in customer_records:
+
+        customer_response = CustomerResponse(
+            id = record["id"],
+            full_name = record["full_name"],
+            email = record["email"],
+            phone_number = record["phone_number"]
+        )
+        customer_responses.append(customer_response)
+
+    return customer_responses
 
 
 

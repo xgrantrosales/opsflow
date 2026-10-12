@@ -3,7 +3,7 @@ from exceptions import DuplicateConfirmationRequired, CustomerNotFoundError
 from database import initialize_database
 from contextlib import asynccontextmanager
 from models import CustomerCreate, CustomerResponse
-from service import create_customer, get_customer_by_id
+from service import create_customer, get_customer_by_id, get_all_customers
 
 @asynccontextmanager
 async def lifespan(app:FastAPI):
@@ -84,6 +84,18 @@ def get_customer_by_id_endpoint(customer_id: int):
                   status_code=status.HTTP_404_NOT_FOUND,
                   detail=str(error)
             )
+
+@app.get(
+      "/customers",
+      response_model=list[CustomerResponse],
+      status_code=status.HTTP_200_OK
+)      
+
+def get_all_customers_endpoint():
+
+      customer_response = get_all_customers()
+
+      return customer_response
 
 
           
