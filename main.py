@@ -2,8 +2,8 @@ from fastapi import FastAPI, status, HTTPException
 from exceptions import DuplicateConfirmationRequired, CustomerNotFoundError
 from database import initialize_database
 from contextlib import asynccontextmanager
-from models import CustomerCreate, CustomerResponse
-from service import create_customer, get_customer_by_id, get_all_customers
+from models import CustomerCreate, CustomerResponse, CustomerUpdate
+from service import create_customer, get_customer_by_id, get_all_customers, update_customer_details
 
 @asynccontextmanager
 async def lifespan(app:FastAPI):
@@ -96,6 +96,59 @@ def get_all_customers_endpoint():
       customer_response = get_all_customers()
 
       return customer_response
+
+@app.patch(
+      "/customers/{customer_id}",
+      response_model=CustomerResponse,
+      status_code=status.HTTP_200_OK,
+      responses={
+            status.HTTP_404_NOT_FOUND: {
+                  "description": "Customer not found."
+            },
+            status.HTTP_409_CONFLICT: {
+                  "description": "Possible duplicate customer found. Confirmation required."
+            }
+      }
+)
+
+def update_customer_endpoint(
+      customer_id: int,
+      customer_update: CustomerUpdate,
+      confirm_duplicate: bool = False
+):
+      try:
+            customer_response = update_customer_details(
+                  customer_id,
+                  customer_update,
+                  confirm_duplicate
+            )
+            return customer_response
+
+      except CustomerNotFoundError as error:
+            raise HTTPException(
+                  status_code=status.HTTP_404_NOT_FOUND,
+                  detail=str(error)
+            )
+      except DuplicateConfirmationRequired as error:
+            
+            matching_customers = []
+            
+            for customer in error.existing_customers:
+                  matching_customers.append({
+                        "id": customer["id"],
+                        "full_name": customer["full_name"],
+                        "email": customer["email"],
+                        "phone_number": customer["phone_number"]
+                  })
+                                      
+            raise HTTPException(
+                   status_code=status.HTTP_409_CONFLICT,
+                   detail={
+                          "message": str(error),
+                          "matching_customers": matching_customers
+                   }
+            )
+                            
 
 
           

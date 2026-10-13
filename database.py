@@ -48,8 +48,8 @@ def insert_customer(customer: CustomerCreate) -> int:
     return new_customer_id
 
 def find_existing_customer(
-        email: str,
-        phone_number: str
+        email: str | None,
+        phone_number: str | None
 ):
     connection = connect_database()
     cursor = connection.cursor()
@@ -86,7 +86,10 @@ def fetch_all_customers():
     connection.close()
     return customer_records
 
-def update_customer(customer_id: int, updates: dict):
+def update_customer(
+        customer_id: int,
+        updates: dict
+):
     connection = connect_database()
     cursor = connection.cursor()
 

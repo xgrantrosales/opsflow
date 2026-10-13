@@ -1,5 +1,5 @@
-from models import CustomerCreate, CustomerResponse
-from database import insert_customer , find_existing_customer, fetch_customer_by_id, fetch_all_customers
+from models import CustomerCreate, CustomerResponse, CustomerUpdate
+from database import insert_customer , find_existing_customer, fetch_customer_by_id, fetch_all_customers, update_customer
 from exceptions import DuplicateConfirmationRequired, CustomerNotFoundError
 
 def create_customer(
@@ -59,6 +59,57 @@ def get_all_customers() -> list[CustomerResponse]:
         customer_responses.append(customer_response)
 
     return customer_responses
+
+def update_customer_details(
+        customer_id: int,
+        customer_update: CustomerUpdate,
+        confirm_duplicate: bool = False
+) -> CustomerResponse:
+    
+    existing_customer = get_customer_by_id(customer_id)
+
+    updates = customer_update.model_dump(exclude_unset=True)
+
+    changed_fields = {}
+
+    for field_name, new_value in updates.items():
+
+        if getattr(existing_customer, field_name)!= new_value:
+            changed_fields[field_name] = new_value
+
+    if not changed_fields:
+        return existing_customer        
+
+    existing_customers = find_existing_customer(
+        changed_fields.get("email"),
+        changed_fields.get("phone_number")
+    )
+
+    other_customers = []
+
+    for customer in existing_customers:
+
+        if customer["id"] != customer_id:
+
+            other_customers.append(customer)
+
+    if other_customers and not confirm_duplicate:
+        raise DuplicateConfirmationRequired(other_customers)   
+
+    update_customer(
+        customer_id,
+        changed_fields
+    ) 
+
+    customer_response = get_customer_by_id(
+        customer_id
+    )   
+
+    return customer_response
+
+
+        
+
 
 
 
