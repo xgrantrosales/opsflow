@@ -1,5 +1,5 @@
 from models import CustomerCreate, CustomerResponse, CustomerUpdate
-from database import insert_customer , find_existing_customer, fetch_customer_by_id, fetch_all_customers, update_customer
+from database import insert_customer , find_existing_customer, fetch_customer_by_id, fetch_all_customers, update_customer_with_history
 from exceptions import DuplicateConfirmationRequired, CustomerNotFoundError
 
 def create_customer(
@@ -72,10 +72,13 @@ def update_customer_details(
 
     changed_fields = {}
 
+    old_values = {}
+
     for field_name, new_value in updates.items():
 
         if getattr(existing_customer, field_name)!= new_value:
             changed_fields[field_name] = new_value
+            old_values[field_name] = getattr(existing_customer, field_name)
 
     if not changed_fields:
         return existing_customer        
@@ -96,9 +99,10 @@ def update_customer_details(
     if other_customers and not confirm_duplicate:
         raise DuplicateConfirmationRequired(other_customers)   
 
-    update_customer(
+    update_customer_with_history(
         customer_id,
-        changed_fields
+        changed_fields,
+        old_values
     ) 
 
     customer_response = get_customer_by_id(

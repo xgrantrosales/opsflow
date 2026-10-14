@@ -1,15 +1,18 @@
 import sqlite3
 from models import CustomerCreate
+from exceptions import CustomerNotFoundError
 
 def connect_database():
     connection = sqlite3.connect(
         "opsflow.db"
     )
     connection.row_factory = sqlite3.Row
+    connection.execute("PRAGMA foreign_keys = ON")
     return connection
 
 def create_customers_table(connection):
     cursor = connection.cursor()
+
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS customers (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -20,9 +23,26 @@ def create_customers_table(connection):
     """)
     connection.commit()
 
+def create_customer_change_history_table(connection):
+    cursor = connection.cursor()
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS customer_change_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            customer_id INTEGER NOT NULL,
+            field_name TEXT NOT NULL,
+            old_value TEXT NOT NULL,
+            new_value TEXT NOT NULL,
+            changed_at TEXT NOT NULL,
+            FOREIGN KEY (customer_id) REFERENCES customers(id)
+        )
+    """)    
+    connection.commit()
+
 def initialize_database():
     connection = connect_database()
     create_customers_table(connection)
+    create_customer_change_history_table(connection)
     connection.close()
 
 def insert_customer(customer: CustomerCreate) -> int:
@@ -87,10 +107,10 @@ def fetch_all_customers():
     return customer_records
 
 def update_customer(
+        connection,
         customer_id: int,
         updates: dict
 ):
-    connection = connect_database()
     cursor = connection.cursor()
 
     cursor.execute("""
@@ -107,8 +127,96 @@ def update_customer(
             customer_id
         )   
     )
-    connection.commit()
-    connection.close()
+    
+def insert_customer_change_history(
+        connection,
+        customer_id: int,
+        field_name: str,
+        old_value: str,
+        new_value: str
+):
+    cursor = connection.cursor()
+
+    cursor.execute("""
+        INSERT INTO customer_change_history (
+            customer_id,
+            field_name,
+            old_value,
+            new_value,
+            changed_at
+        )
+        VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+    """,(
+        customer_id,
+        field_name,
+        old_value,
+        new_value
+    ))
+
+def update_customer_with_history(
+        customer_id: int,
+        updates: dict,
+        old_values: dict
+):    
+    connection = connect_database()
+
+    try:
+        connection.execute("BEGIN IMMEDIATE")
+        cursor = connection.cursor()
+
+        cursor.execute(
+            """
+            SELECT id, full_name, email, phone_number
+            FROM customers
+            WHERE id = ?
+            """,
+            (customer_id,)
+        )
+
+        current_customer = cursor.fetchone()
+
+        if current_customer is None:
+            raise CustomerNotFoundError("Customer not found.")
+
+        actual_changes = {}
+
+        for field_name, new_value in updates.items():
+
+            if current_customer[field_name] != new_value:
+
+                actual_changes[field_name] = new_value
+
+        update_customer(
+            connection,
+            customer_id,
+            updates
+        )
+
+        for field_name, new_value in updates.items():
+
+            old_value = current_customer[field_name]
+
+            if old_value == new_value:
+                continue
+
+            insert_customer_change_history(
+                connection,
+                customer_id,
+                field_name,
+                old_value,
+                new_value
+            )
+        connection.commit()    
+
+    except Exception:
+        connection.rollback()
+        raise
+
+    finally:
+        connection.close()
+
+
+
 
     
 
