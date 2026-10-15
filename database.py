@@ -156,7 +156,6 @@ def insert_customer_change_history(
 def update_customer_with_history(
         customer_id: int,
         updates: dict,
-        old_values: dict
 ):    
     connection = connect_database()
 
@@ -186,18 +185,17 @@ def update_customer_with_history(
 
                 actual_changes[field_name] = new_value
 
-        update_customer(
-            connection,
-            customer_id,
-            updates
-        )
-
-        for field_name, new_value in updates.items():
+        if actual_changes:
+            
+            update_customer(
+                connection,
+                customer_id,
+                actual_changes
+            )
+            
+        for field_name, new_value in actual_changes.items():
 
             old_value = current_customer[field_name]
-
-            if old_value == new_value:
-                continue
 
             insert_customer_change_history(
                 connection,
