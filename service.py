@@ -1,28 +1,42 @@
 from models import CustomerCreate, CustomerResponse, CustomerUpdate
-from database import insert_customer , find_existing_customer, fetch_customer_by_id, fetch_all_customers, update_customer_with_history
+from database import insert_customer , find_existing_customer, fetch_customer_by_id, fetch_all_customers, update_customer_with_history, connect_database
 from exceptions import DuplicateConfirmationRequired, CustomerNotFoundError
 
 def create_customer(
         customer: CustomerCreate,
         confirm_duplicate: bool = False
 ) -> CustomerResponse:
+    connection = connect_database()
+    try:
+        connection.execute("BEGIN IMMEDIATE")
 
-    existing_customers = find_existing_customer(
-        customer.email,
-        customer.phone_number
-    )
+        existing_customers = find_existing_customer(
+            connection,
+            customer.email,
+            customer.phone_number
+        )
 
-    if existing_customers and not confirm_duplicate:
-        raise DuplicateConfirmationRequired(existing_customers)
+        if existing_customers and not confirm_duplicate:
+            raise DuplicateConfirmationRequired(existing_customers)
 
-    new_customer_id = insert_customer(customer)
+        new_customer_id = insert_customer(
+            connection,
+            customer
+        )
+        customer_response = CustomerResponse(
+                id = new_customer_id,
+                full_name = customer.full_name,
+                email = customer.email,
+                phone_number = customer.phone_number
+            )
+        connection.commit()
 
-    customer_response = CustomerResponse(
-        id = new_customer_id,
-        full_name = customer.full_name,
-        email = customer.email,
-        phone_number = customer.phone_number
-    )
+    except Exception:
+        connection.rollback()
+        raise
+
+    finally:
+        connection.close()
 
     return customer_response
 
@@ -65,7 +79,7 @@ def update_customer_details(
         customer_update: CustomerUpdate,
         confirm_duplicate: bool = False
 ) -> CustomerResponse:
-    
+
     existing_customer = get_customer_by_id(customer_id)
 
     updates = customer_update.model_dump(exclude_unset=True)
@@ -76,40 +90,17 @@ def update_customer_details(
 
         if getattr(existing_customer, field_name)!= new_value:
             changed_fields[field_name] = new_value
-           
+
     if not changed_fields:
-        return existing_customer        
-
-    existing_customers = find_existing_customer(
-        changed_fields.get("email"),
-        changed_fields.get("phone_number")
-    )
-
-    other_customers = []
-
-    for customer in existing_customers:
-
-        if customer["id"] != customer_id:
-
-            other_customers.append(customer)
-
-    if other_customers and not confirm_duplicate:
-        raise DuplicateConfirmationRequired(other_customers)   
+        return existing_customer
 
     update_customer_with_history(
         customer_id,
-        changed_fields
-    ) 
+        changed_fields,
+        confirm_duplicate
+    )
 
     customer_response = get_customer_by_id(
         customer_id
-    )   
-
+    )
     return customer_response
-
-
-        
-
-
-
-
