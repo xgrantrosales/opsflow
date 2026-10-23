@@ -18,7 +18,8 @@ def create_customers_table(connection):
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         full_name TEXT NOT NULL,
         email TEXT NOT NULL,
-        phone_number TEXT NOT NULL
+        phone_number TEXT NOT NULL,
+        is_active INTEGER NOT NULL DEFAULT 1
         )
     """)
     connection.commit()
@@ -39,9 +40,29 @@ def create_customer_change_history_table(connection):
     """)
     connection.commit()
 
+def migrate_customer_archiving(connection):
+    cursor = connection.cursor()
+
+    cursor.execute("PRAGMA table_info(customers)")
+    columns = cursor.fetchall()
+
+    column_names = []
+
+    for column in columns:
+        column_names.append(column["name"])
+
+    if "is_active" not in column_names:
+        cursor.execute("""
+            ALTER TABLE customers
+            ADD COLUMN is_active INTEGER NOT NULL DEFAULT 1
+        """)
+
+        connection.commit()
+
 def initialize_database():
     connection = connect_database()
     create_customers_table(connection)
+    migrate_customer_archiving(connection)
     create_customer_change_history_table(connection)
     connection.close()
 
@@ -228,6 +249,22 @@ def update_customer_with_history(
 
     finally:
         connection.close()
+
+def archive_customer(
+        connection,
+        customer_id: int
+):
+    cursor = connection.cursor()
+
+    cursor.execute("""
+        UPDATE customers
+        SET is_active = 0
+        WHERE id = ? AND is_active = 1
+    """, (customer_id,))
+
+    return cursor.rowcount
+
+
 
 
 
