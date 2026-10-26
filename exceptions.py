@@ -5,4 +5,7 @@ class DuplicateConfirmationRequired(Exception):
 
 class CustomerNotFoundError(Exception):
     pass
-        
+
+class CustomerAlreadyArchivedError(Exception):
+    pass
+

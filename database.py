@@ -1,6 +1,6 @@
 import sqlite3
 from models import CustomerCreate
-from exceptions import CustomerNotFoundError, DuplicateConfirmationRequired
+from exceptions import CustomerNotFoundError, DuplicateConfirmationRequired , CustomerAlreadyArchivedError
 
 def connect_database():
     connection = sqlite3.connect(
@@ -249,6 +249,44 @@ def update_customer_with_history(
 
     finally:
         connection.close()
+
+def archive_customer_with_transaction(customer_id: int):
+    connection = connect_database()
+
+    try:
+        connection.execute("BEGIN IMMEDIATE")
+        cursor = connection.cursor()
+
+        cursor.execute("""
+            SELECT id, is_active
+            FROM customers
+            WHERE id = ?
+        """, (customer_id,))
+
+        current_customer = cursor.fetchone()
+
+        if current_customer is None:
+            raise CustomerNotFoundError("Customer not found.")
+
+        if current_customer["is_active"] == 0:
+            raise CustomerAlreadyArchivedError("Customer is already archived.")
+
+        rows_affected = archive_customer(
+            connection,
+            customer_id
+        )
+        if rows_affected != 1:
+            raise RuntimeError("Customer archiving failed.")
+
+        connection.commit()
+
+    except Exception:
+        connection.rollback()
+        raise
+
+    finally:
+        connection.close()
+
 
 def archive_customer(
         connection,

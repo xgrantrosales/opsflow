@@ -1,9 +1,9 @@
 from fastapi import FastAPI, status, HTTPException
-from exceptions import DuplicateConfirmationRequired, CustomerNotFoundError
+from exceptions import DuplicateConfirmationRequired, CustomerNotFoundError, CustomerAlreadyArchivedError
 from database import initialize_database
 from contextlib import asynccontextmanager
 from models import CustomerCreate, CustomerResponse, CustomerUpdate
-from service import create_customer, get_customer_by_id, get_all_customers, update_customer_details
+from service import create_customer, get_customer_by_id, get_all_customers, update_customer_details, archive_customer_details
 
 @asynccontextmanager
 async def lifespan(app:FastAPI):
@@ -42,7 +42,7 @@ def create_customer_endpoint(
                 return customer_response
 
           except DuplicateConfirmationRequired as error:
-                
+
                 matching_customers = []
 
                 for customer in error.existing_customers:
@@ -52,7 +52,7 @@ def create_customer_endpoint(
                             "email": customer["email"],
                             "phone_number": customer["phone_number"]
                       })
-                      
+
                 raise HTTPException(
                       status_code=status.HTTP_409_CONFLICT,
                       detail={
@@ -71,7 +71,7 @@ def create_customer_endpoint(
             }
       }
 
-)          
+)
 
 def get_customer_by_id_endpoint(customer_id: int):
 
@@ -89,7 +89,7 @@ def get_customer_by_id_endpoint(customer_id: int):
       "/customers",
       response_model=list[CustomerResponse],
       status_code=status.HTTP_200_OK
-)      
+)
 
 def get_all_customers_endpoint():
 
@@ -130,9 +130,9 @@ def update_customer_endpoint(
                   detail=str(error)
             )
       except DuplicateConfirmationRequired as error:
-            
+
             matching_customers = []
-            
+
             for customer in error.existing_customers:
                   matching_customers.append({
                         "id": customer["id"],
@@ -140,7 +140,7 @@ def update_customer_endpoint(
                         "email": customer["email"],
                         "phone_number": customer["phone_number"]
                   })
-                                      
+
             raise HTTPException(
                    status_code=status.HTTP_409_CONFLICT,
                    detail={
@@ -148,9 +148,28 @@ def update_customer_endpoint(
                           "matching_customers": matching_customers
                    }
             )
-                            
 
+@app.patch(
+      "/customers/{customer_id}/archive",
+      status_code=status.HTTP_200_OK
+)
 
-          
-          
+def archive_customer_endpoint(customer_id: int):
+
+      try:
+            result = archive_customer_details(customer_id)
+            return result
+
+      except CustomerNotFoundError as error:
+            raise HTTPException(
+                  status_code=status.HTTP_404_NOT_FOUND,
+                  detail=str(error)
+            )
+
+      except CustomerAlreadyArchivedError as error:
+            raise HTTPException(
+                  status_code=status.HTTP_409_CONFLICT,
+                  detail=str(error)
+            )
+
 
