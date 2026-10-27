@@ -27,7 +27,8 @@ def create_customer(
                 id = new_customer_id,
                 full_name = customer.full_name,
                 email = customer.email,
-                phone_number = customer.phone_number
+                phone_number = customer.phone_number,
+                is_active = True
             )
         connection.commit()
 
@@ -51,9 +52,9 @@ def get_customer_by_id(customer_id: int) -> CustomerResponse:
         id = customer_record["id"],
         full_name = customer_record["full_name"],
         email = customer_record["email"],
-        phone_number = customer_record["phone_number"]
+        phone_number = customer_record["phone_number"],
+        is_active = customer_record["is_active"]
     )
-
     return customer_response
 
 def get_all_customers() -> list[CustomerResponse]:
@@ -68,7 +69,8 @@ def get_all_customers() -> list[CustomerResponse]:
             id = record["id"],
             full_name = record["full_name"],
             email = record["email"],
-            phone_number = record["phone_number"]
+            phone_number = record["phone_number"],
+            is_active = record["is_active"]
         )
         customer_responses.append(customer_response)
 
@@ -90,9 +92,6 @@ def update_customer_details(
 
         if getattr(existing_customer, field_name)!= new_value:
             changed_fields[field_name] = new_value
-
-    if not changed_fields:
-        return existing_customer
 
     update_customer_with_history(
         customer_id,

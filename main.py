@@ -2,7 +2,7 @@ from fastapi import FastAPI, status, HTTPException
 from exceptions import DuplicateConfirmationRequired, CustomerNotFoundError, CustomerAlreadyArchivedError
 from database import initialize_database
 from contextlib import asynccontextmanager
-from models import CustomerCreate, CustomerResponse, CustomerUpdate
+from models import CustomerCreate, CustomerResponse, CustomerUpdate, CustomerArchiveResponse
 from service import create_customer, get_customer_by_id, get_all_customers, update_customer_details, archive_customer_details
 
 @asynccontextmanager
@@ -129,6 +129,11 @@ def update_customer_endpoint(
                   status_code=status.HTTP_404_NOT_FOUND,
                   detail=str(error)
             )
+      except CustomerAlreadyArchivedError as error:
+            raise HTTPException(
+                  status_code=status.HTTP_409_CONFLICT,
+                  detail=str(error)
+            )
       except DuplicateConfirmationRequired as error:
 
             matching_customers = []
@@ -151,7 +156,16 @@ def update_customer_endpoint(
 
 @app.patch(
       "/customers/{customer_id}/archive",
-      status_code=status.HTTP_200_OK
+      response_model=CustomerArchiveResponse,
+      status_code=status.HTTP_200_OK,
+      responses={
+            status.HTTP_404_NOT_FOUND: {
+                  "description": "Customer not found."
+            },
+            status.HTTP_409_CONFLICT: {
+                  "description": "Customer is already archived."
+            }
+      }
 )
 
 def archive_customer_endpoint(customer_id: int):

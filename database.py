@@ -186,7 +186,7 @@ def update_customer_with_history(
 
         cursor.execute(
             """
-            SELECT id, full_name, email, phone_number
+            SELECT id, full_name, email, phone_number, is_active
             FROM customers
             WHERE id = ?
             """,
@@ -197,6 +197,11 @@ def update_customer_with_history(
 
         if current_customer is None:
             raise CustomerNotFoundError("Customer not found.")
+
+        if current_customer["is_active"] == 0:
+            raise CustomerAlreadyArchivedError(
+                "Cannot update an archived customer."
+            )
 
         actual_changes = {}
 
@@ -286,7 +291,6 @@ def archive_customer_with_transaction(customer_id: int):
 
     finally:
         connection.close()
-
 
 def archive_customer(
         connection,

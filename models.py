@@ -17,17 +17,21 @@ class CustomerCreate(BaseModel):
     def validate_phone_number(cls,phone_number:str) -> str:
 
         return clean_phone_number(phone_number)
-        
+
 class CustomerResponse(BaseModel):
     id: int
-    full_name: str   
+    full_name: str
     email: str
     phone_number: str
+    is_active: bool
+
+class CustomerArchiveResponse(BaseModel):
+    message: str
 
 class CustomerUpdate(BaseModel):
     full_name: str | None = None
     email: EmailStr | None = None
-    phone_number: str | None = None  
+    phone_number: str | None = None
 
     @model_validator(mode="after")
     def validate_update_request(self):
@@ -60,9 +64,9 @@ class CustomerUpdate(BaseModel):
             return None
 
         else:
-            return clean_phone_number(phone_number)    
+            return clean_phone_number(phone_number)
 
 
 
-             
+
 
