@@ -306,8 +306,24 @@ def archive_customer(
 
     return cursor.rowcount
 
+def reactivate_customer(
+        connection,
+        customer_id: int
+):
+    cursor = connection.cursor()
 
+    cursor.execute("""
+        UPDATE customers
+        SET is_active = 1
+        WHERE id = ? AND is_active = 0
+    """, (customer_id,))
 
+    return cursor.rowcount
+
+def reactivate_customer_with_transaction(
+        customer_id: int
+):
+    pass
 
 
 
