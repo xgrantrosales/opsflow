@@ -1,9 +1,9 @@
 from fastapi import FastAPI, status, HTTPException
-from exceptions import DuplicateConfirmationRequired, CustomerNotFoundError, CustomerAlreadyArchivedError
+from exceptions import DuplicateConfirmationRequired, CustomerNotFoundError, CustomerAlreadyArchivedError, CustomerAlreadyActiveError
 from database import initialize_database
 from contextlib import asynccontextmanager
 from models import CustomerCreate, CustomerResponse, CustomerUpdate, CustomerArchiveResponse
-from service import create_customer, get_customer_by_id, get_all_customers, update_customer_details, archive_customer_details
+from service import create_customer, get_customer_by_id, get_all_customers, update_customer_details, archive_customer_details, reactivate_customer_details
 
 @asynccontextmanager
 async def lifespan(app:FastAPI):
@@ -186,4 +186,35 @@ def archive_customer_endpoint(customer_id: int):
                   detail=str(error)
             )
 
+@app.patch(
+      "/customers/{customer_id}/reactivate",
+      response_model=CustomerArchiveResponse,
+      status_code=status.HTTP_200_OK,
+      responses={
+            status.HTTP_404_NOT_FOUND: {
+                  "description": "Customer not found."
+            },
+            status.HTTP_409_CONFLICT: {
+                  "description": "Customer is already active."
+            }
+      }
+)
+
+def reactivate_customer_endpoint(customer_id: int):
+
+      try:
+            result = reactivate_customer_details(customer_id)
+            return result
+
+      except CustomerNotFoundError as error:
+            raise HTTPException(
+                  status_code=status.HTTP_404_NOT_FOUND,
+                  detail=str(error)
+            )
+
+      except CustomerAlreadyActiveError as error:
+            raise HTTPException(
+                  status_code=status.HTTP_409_CONFLICT,
+                  detail=str(error)
+            )
 

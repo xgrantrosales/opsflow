@@ -9,3 +9,5 @@ class CustomerNotFoundError(Exception):
 class CustomerAlreadyArchivedError(Exception):
     pass
 
+class CustomerAlreadyActiveError(Exception):
+    pass

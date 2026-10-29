@@ -1,6 +1,6 @@
 import sqlite3
 from models import CustomerCreate
-from exceptions import CustomerNotFoundError, DuplicateConfirmationRequired , CustomerAlreadyArchivedError
+from exceptions import CustomerNotFoundError, DuplicateConfirmationRequired , CustomerAlreadyArchivedError, CustomerAlreadyActiveError
 
 def connect_database():
     connection = sqlite3.connect(
@@ -323,7 +323,44 @@ def reactivate_customer(
 def reactivate_customer_with_transaction(
         customer_id: int
 ):
-    pass
+    connection = connect_database()
+
+    try:
+        connection.execute("BEGIN IMMEDIATE")
+        cursor = connection.cursor()
+
+        cursor.execute("""
+            SELECT id, is_active
+            FROM customers
+            WHERE id = ?
+        """, (customer_id,))
+
+        current_customer = cursor.fetchone()
+
+        if current_customer is None:
+            raise CustomerNotFoundError("Customer not found.")
+
+        if current_customer["is_active"] == 1:
+            raise CustomerAlreadyActiveError(
+                "Customer is already active."
+            )
+
+        rows_affected = reactivate_customer(
+            connection,
+            customer_id
+        )
+
+        if rows_affected != 1:
+            raise RuntimeError("Customer reactivation failed.")
+
+        connection.commit()
+
+    except Exception:
+        connection.rollback()
+        raise
+
+    finally:
+        connection.close()
 
 
 

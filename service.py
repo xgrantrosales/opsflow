@@ -1,5 +1,5 @@
 from models import CustomerCreate, CustomerResponse, CustomerUpdate
-from database import insert_customer , find_existing_customer, fetch_customer_by_id, fetch_all_customers, update_customer_with_history, connect_database, archive_customer_with_transaction
+from database import insert_customer , find_existing_customer, fetch_customer_by_id, fetch_all_customers, update_customer_with_history, connect_database, archive_customer_with_transaction, reactivate_customer_with_transaction
 from exceptions import DuplicateConfirmationRequired, CustomerNotFoundError
 
 def create_customer(
@@ -109,3 +109,9 @@ def archive_customer_details(customer_id: int):
     archive_customer_with_transaction(customer_id)
 
     return {"message": "Customer archived successfully."}
+
+def reactivate_customer_details(customer_id: int):
+
+    reactivate_customer_with_transaction(customer_id)
+
+    return {"message": "Customer reactivated successfully."}
